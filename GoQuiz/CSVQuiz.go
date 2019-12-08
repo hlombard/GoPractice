@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func showUsage() {
@@ -35,11 +36,19 @@ func checkAnswer(eval string, answer string) bool {
 	}
 }
 
-func getInput() string {
+func getInput(input chan string) {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
-	text = strings.TrimRight(text, "\r\n") // \r for windows
-	return text
+	text = strings.TrimRight(text, "\r\n")
+	input <- text
+}
+
+func iswellFormated(str []string) bool {
+	if len(str) == 2 && strings.ContainsAny(str[0], "+-*/") {
+		return true
+	} else {
+		return false
+	}
 }
 
 func main() {
@@ -54,23 +63,42 @@ func main() {
 	if error != nil {
 		log.Fatalln("Couldn't open the csv file", error)
 	}
+
+	fmt.Println("You have 2 seconds to answer each questions")
+	fmt.Println("Press ENTER when you're ready !")
+	for{
+		tmp := bufio.NewReader(os.Stdin)
+		tmp.ReadString('\n')
+		break
+	}
+
 	ptr := csv.NewReader(file)
-	i := 1
-	for {
+	total := 0
+	correct := 0
+	for loop := true; loop == true;{
 		record, err := ptr.Read()
 		if err == io.EOF {
 			break
 		}
-		if err != nil {
-			log.Fatal(err)
+		if iswellFormated(record) == false {
+			continue
 		}
-		fmt.Printf("Question %d: %s : ", i, record[0])
-		input := getInput()
-		if checkAnswer(input, record[1]) == false {
+		fmt.Printf("Question %d: %s : ", total, record[0])
+		total++
+		input := make(chan string, 1)
+		go getInput(input)
+
+		select {
+		case i:= <-input:
+			if checkAnswer(i, record[1]) == false{
 			fmt.Println("False... Correct answer was", record[1])
-			os.Exit(-2)
+			} else{
+				correct++
+			}
+		case <-time.After(2000 * time.Millisecond):
+			fmt.Println("You need to be quicker...")
+			loop = false
 		}
-		i++
 	}
-	fmt.Printf("\nCongratz all answers correct : %d/%d", i, i)
+	fmt.Printf("\nTest finished : %d/%d Correct Answers !", correct, total)
 }
