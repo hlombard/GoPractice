@@ -20,7 +20,7 @@ func check(e error) {
 	}
   }
 
-func set_map() []AppYAML{
+func setArrayStruct() []AppYAML{
 	if _, err := os.Stat("settings.yaml"); os.IsNotExist(err) {
 		fmt.Println("You need to have \"settings.yaml\" file in your current directory, to setup the redirection config")
 		os.Exit(-1) }
@@ -39,7 +39,7 @@ func urlRedirection(rw http.ResponseWriter, req *http.Request){
 	req.ParseForm()
 	if (req.URL.Path == "/favicon.ico"){
 		return }
-	config := set_map()
+	config := setArrayStruct()
 	for i, _:= range config {
 		if (config[i].Path == req.URL.Path) {
 			fmt.Println("Redirection made to :", config[i].Url)
